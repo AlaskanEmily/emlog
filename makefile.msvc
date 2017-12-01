@@ -1,0 +1,74 @@
+# Any copyright of this file is dedicated to the Public Domain.
+# http://creativecommons.org/publicdomain/zero/1.0/
+
+# Em Log utility
+
+OBJDIR=objects\$(MODE)
+DEBUGOBJDIR=objects\DEBUG
+
+!IF ("$(MODE)"=="RELEASE")
+DEBUGMACRO=/DNDEBUG
+OPTFLAGS=/O2 /GL
+!ENDIF
+
+!IF ("$(MODE)"=="DEBUG")
+OPTFLAGS=/Od
+LIBSUFFIX=d
+!ENDIF
+
+!IF ("$(MODE)"=="RDEBUG")
+OPTFLAGS=/O1 /GL
+LIBSUFFIX=rd
+!ENDIF
+
+CLFLAGS=/nologo $(DEBUGMACRO) $(OPTFLAGS) /Zi /M$(CRT)
+
+EMLOGTEST=emlogtest.exe
+EMLOGPROC=emlogproc.exe
+EMLOG=emlog.exe
+EMLOGLIB=lib\emlog$(BITS)$(LIBSUFFIX).lib
+OBJECTS=$(OBJDIR)\emlog.obj $(OBJDIR)\emlog_win32.obj $(OBJDIR)\emlog_queue.obj $(OBJDIR)\emlog_message.obj
+
+all: $(EMLOG) $(EMLOGPROC)
+
+test: $(EMLOGTEST)
+
+$(EMLOGLIB): $(OBJECTS)
+	lib /nologo $(OBJECTS) /OUT:$(EMLOGLIB)
+
+$(EMLOG): $(EMLOGLIB) $(OBJECTS) $(OBJDIR)\emlog_main.obj
+	link /nologo $(EMLOGLIB) $(OBJDIR)\emlog_main.obj /out:$(EMLOG) 
+
+$(EMLOGPROC): $(EMLOG) $(EMLOGLIB) $(OBJECTS) $(OBJDIR)\emlog_win32_test.obj
+	link /nologo $(EMLOGLIB) $(OBJDIR)\emlog_win32_test.obj /out:$(EMLOGPROC) 
+
+$(EMLOGTEST): $(EMLOGLIB) $(OBJECTS) $(OBJDIR)\emlog_test.obj
+	link /nologo $(EMLOGLIB) $(OBJDIR)\emlog_test.obj /out:$(EMLOGTEST)
+
+$(OBJDIR)\emlog.obj: emlog.c emlog.h emlog_backend.h
+	cl $(CLFLAGS) /c emlog.c /Fo:$(OBJDIR)\emlog.obj
+
+$(OBJDIR)\emlog_message.obj: emlog_message.c emlog.h emlog_backend.h
+	cl $(CLFLAGS) /c emlog_message.c /Fo:$(OBJDIR)\emlog_message.obj
+
+$(OBJDIR)\emlog_main.obj: emlog_main.c emlog.h emlog_backend.h
+	cl $(CLFLAGS) /c emlog_main.c /Fo:$(OBJDIR)\emlog_main.obj
+
+$(OBJDIR)\emlog_win32_test.obj: emlog_win32_test.c emlog.h emlog_backend.h
+	cl $(CLFLAGS) /c emlog_win32_test.c /Fo:$(OBJDIR)\emlog_win32_test.obj
+
+$(OBJDIR)\emlog_win32.obj: emlog_win32.c emlog_backend.h
+	cl $(CLFLAGS) /c emlog_win32.c /Fo:$(OBJDIR)\emlog_win32.obj
+
+$(OBJDIR)\emlog_queue.obj: emlog_queue.c emlog_backend.h
+	cl $(CLFLAGS) /c emlog_queue.c /Fo:$(OBJDIR)\emlog_queue.obj
+
+test_clean:
+
+clean: test_clean
+	@del /Q $(OBJDIR)\emlog_main.obj
+	@del /Q $(OBJDIR)\emlog_test.obj
+	@del /Q $(OBJECTS)
+	@del /Q $(EMLOGLIB)
+	@del /Q $(EMLOGTEST)
+	@del /Q $(EMLOG)
